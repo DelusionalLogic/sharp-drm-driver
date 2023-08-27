@@ -28,6 +28,7 @@
 #include <drm/drm_rect.h>
 #include <drm/drm_probe_helper.h>
 #include <drm/drm_simple_kms_helper.h>
+#include <asm/neon.h>
 
 #include "params_iface.h"
 #include "ioctl_iface.h"
@@ -37,6 +38,8 @@
 
 #define CMD_WRITE_LINE 0b10000000
 #define CMD_CLEAR_SCREEN 0b00100000
+
+size_t simd_impl(u8 *buf, int width, int local_width, int height);
 
 struct sharp_memory_panel {
 	struct drm_device drm;
@@ -183,12 +186,21 @@ static size_t sharp_memory_gray8_to_mono_tagged(u8 *buf, int width, int height, 
 	unsigned char d;
 	int const tagged_line_len = 2 + width / 8;
 
+	int simd_width = width/8;
+	if(simd_width > 0) {
+		kernel_neon_begin();
+		simd_impl(buf, width, simd_width, height);
+		kernel_neon_end();
+	} else {
+		simd_width = 0;
+	}
+
 	// Iterate over lines from [0, height)
 	for (line = 0; line < height; line++) {
 
 		// Iterate over chunks of 8 source grayscale bytes
 		// Each 8-byte source chunk will map to one destination mono byte
-		for (b8 = 0; b8 < width; b8 += 8) {
+		for (b8 = simd_width * 8; b8 < width; b8 += 8) {
 			d = 0;
 
 			// Iterate over each of the 8 grayscale bytes in the chunk

@@ -1,6 +1,7 @@
 obj-m += sharp-drm.o
-sharp-drm-objs += src/main.o src/drm_iface.o src/params_iface.o src/ioctl_iface.o
+sharp-drm-objs += src/main.o src/drm_iface.o src/params_iface.o src/ioctl_iface.o src/neon.o
 ccflags-y := -g -std=gnu99 -Wno-declaration-after-statement
+CFLAGS_src/neon.o := -march=armv7-a -mfpu=neon -mfloat-abi=softfp -ffreestanding -I /usr/lib/gcc/armv7l-unknown-linux-gnueabihf/12.1.0/include/
 
 dtb-y += sharp-drm.dtbo
 
